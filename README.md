@@ -24,31 +24,10 @@ Key design choices: SSIM frame sampling only processes frames where the scene ha
 
 ## Architecture
 
-```
-Video (local / S3 / RTSP)
-         |
-         v
-  SSIM Adaptive Sampler --> skips redundant frames
-         |
-    +----+--------------+
-    |    |              |
- CV Agent  ASR Agent  VSR Agent     --> run in parallel
-    |        |          |
-    |        |          +- Lip-reading via Ollama vision        ||
-    |        |          |  (only when audio is absent)              |
-    |        +- LLM summary of transcription
-    +--------------------+
-             |
-             v
-      Fusion Engine (CrewAI)
-             |
-    +----------------+   +---------------+
-    |  Ollama (local)| or| Claude (cloud)|
-    +----------------+   +---------------+
-             |
-             v
-       Intelligence Report  -->  JSON + Streamlit UI
-```
+
+<p align="center">
+  <img src="architecture-flow.png" alt="Multimodal Video Intelligence Architecture" width="700"/>
+</p>
 
 ---
 
