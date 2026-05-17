@@ -1,6 +1,5 @@
 # Multimodal Video Intelligence Platform
 
-[![CI](https://github.com/YOUR_ORG/multimodal-video-intelligence/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_ORG/multimodal-video-intelligence/actions)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![PyTorch 2.11+](https://img.shields.io/badge/PyTorch-2.11+-ee4c2c.svg)](https://pytorch.org/)
 [![Ollama](https://img.shields.io/badge/LLM-Ollama%20%7C%20Claude-8B5CF6.svg)](https://ollama.com)
