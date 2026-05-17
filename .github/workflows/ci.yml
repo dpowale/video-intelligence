@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    name: Lint & Unit Tests (CPU)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install CPU-only dependencies
+        run: |
+          pip install --upgrade pip
+          # Install PyTorch CPU build first
+          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+          # Install project deps (skip GPU-heavy packages in CI)
+          pip install \
+            numpy omegaconf pyyaml \
+            opencv-python-headless scikit-image shapely \
+            faster-whisper transformers peft \
+            qdrant-client redis \
+            fastapi uvicorn python-multipart pydantic \
+            anthropic sentence-transformers \
+            pytest pytest-asyncio pytest-cov ruff mypy
+
+      - name: Ruff lint
+        run: ruff check src/ tests/ scripts/
+
+      - name: Run unit tests (stub mode — no GPU, no weights)
+        run: |
+          pytest tests/unit/ \
+            --cov=src \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            -v \
+            --timeout=60
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage.xml
+          fail_ci_if_error: false
+
+  docker-build:
+    name: Docker build check
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -f docker/Dockerfile -t mvi:ci .
+
+  integration-stub:
+    name: Integration — stub pipeline
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install deps
+        run: |
+          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip install numpy omegaconf pyyaml opencv-python-headless scikit-image \
+            shapely anthropic sentence-transformers qdrant-client redis fastapi \
+            transformers peft faster-whisper pytest pytest-asyncio
+
+      - name: Install ffmpeg
+        run: sudo apt-get install -y ffmpeg
+
+      - name: Create synthetic test video
+        run: |
+          python - <<'EOF'
+          import cv2, numpy as np
+          out = cv2.VideoWriter("/tmp/test.mp4", cv2.VideoWriter_fourcc(*"mp4v"), 10, (160, 90))
+          for i in range(30):
+              frame = np.full((90, 160, 3), i * 8, dtype=np.uint8)
+              out.write(frame)
+          out.release()
+          print("Test video created")
+          EOF
+
+      - name: Run pipeline in stub mode
+        run: |
+          python scripts/run_pipeline.py \
+            --video /tmp/test.mp4 \
+            --orchestration local \
+            --output /tmp/result.json
+          cat /tmp/result.json
+          python -c "import json; r=json.load(open('/tmp/result.json')); assert r['frames_processed'] > 0"

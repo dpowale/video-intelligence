@@ -1,0 +1,113 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+wheels/
+sdist/
+var/
+lib/
+lib64/
+pip-log.txt
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Weights & large model files (download separately)
+weights/*.pt
+weights/*.pth
+weights/*.engine
+weights/*.onnx
+weights/*.bin
+weights/*.arpa
+weights/*.arpa.gz
+
+# Data / media files
+data/samples/*.mp4
+data/samples/*.mov
+data/samples/*.mkv
+data/dem/
+data/videos/
+data/audio/
+data/frames/
+data/output/
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.wav
+*.mp3
+*.flac
+
+# Results
+results/
+*.json
+!package.json
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Test / coverage
+.tox/
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.hypothesis/
+nosetests.xml
+
+# Logs
+*.log
+*.tmp
+*.bak
+logs/
+
+# Notebooks checkpoints
+.ipynb_checkpoints/
+*.ipynb
+
+# Ruff cache
+.ruff_cache/
+
+# Mypy / type checkers
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+
+# Docker volumes & state
+redis_data/
+qdrant_data/
+grafana_data/
+docker/.env
+
+# Temporal / Redis state
+*.rdb
+*.pid
+
+# Presentation
+Multimodel_Video_Intelligence.pptx

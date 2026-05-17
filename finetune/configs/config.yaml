@@ -1,0 +1,30 @@
+model:
+  name_or_path: "openai/whisper-large-v3"
+  language: "en"
+  task: "transcribe"
+  output_dir: "./models/whisper-lora"
+
+lora:
+  r: 32
+  alpha: 64
+  dropout: 0.05
+  target_modules: ["q_proj", "v_proj"]
+
+training:
+  learning_rate: 1e-3
+  batch_size: 16
+  num_epochs: 3
+  warmup_steps: 50
+  fp16: true
+  gradient_accumulation_steps: 2
+
+data:
+  dataset_name: "hf-internal-testing/librispeech_asr_dummy"
+  language_abbr: "clean"
+  train_split: "validation"
+  eval_split: "validation"
+  max_duration_in_seconds: 30
+
+augmentation:
+  apply_noise: true
+  snr_db: [5.0, 15.0]

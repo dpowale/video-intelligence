@@ -1,0 +1,98 @@
+pipeline:
+  name: mvi-ci-cd
+  identifier: mvi_ci_cd
+  orgIdentifier: default
+  projectIdentifier: multimodal_video_intelligence
+  properties:
+    ci:
+      codebase:
+        connectorRef: account.github
+        build: <+input>
+  stages:
+    - stage:
+        name: Build
+        identifier: Build
+        type: CI
+        spec:
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Install Dependencies
+                  identifier: Install_Dependencies
+                  spec:
+                    shell: Bash
+                    command: |
+                      python -m venv .venv
+                      . .venv/bin/activate
+                      python -m pip install --upgrade pip
+                      pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+                      pip install -r requirements.txt
+              - step:
+                  type: Run
+                  name: Compile Sources
+                  identifier: Compile_Sources
+                  spec:
+                    shell: Bash
+                    command: |
+                      . .venv/bin/activate
+                      python -m compileall src scripts
+    - stage:
+        name: Test
+        identifier: Test
+        type: CI
+        spec:
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Unit and Integration Tests
+                  identifier: Unit_and_Integration_Tests
+                  spec:
+                    shell: Bash
+                    command: |
+                      . .venv/bin/activate
+                      pytest tests/unit tests/integration -v
+              - step:
+                  type: Run
+                  name: Lint
+                  identifier: Lint
+                  spec:
+                    shell: Bash
+                    command: |
+                      . .venv/bin/activate
+                      ruff check src tests scripts
+    - stage:
+        name: Run
+        identifier: Run
+        type: CI
+        spec:
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: API Smoke Test
+                  identifier: API_Smoke_Test
+                  spec:
+                    shell: Bash
+                    command: |
+                      . .venv/bin/activate
+                      python scripts/run_pipeline.py --serve --port 8080 &
+                      SERVER_PID=$!
+                      sleep 5
+                      curl -sf http://127.0.0.1:8080/health
+                      kill $SERVER_PID
+    - stage:
+        name: Deploy
+        identifier: Deploy
+        type: CI
+        spec:
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Build Docker Image
+                  identifier: Build_Docker_Image
+                  spec:
+                    shell: Bash
+                    command: docker build -f docker/Dockerfile -t mvi:${HARNESS_BUILD_ID:-local} .

@@ -1,0 +1,106 @@
+project:
+  name: multimodal-video-intelligence
+  version: "0.1.0"
+
+# ─── LLM Backend ─────────────────────────────────────────────────────────────
+# backend: auto | ollama | claude | stub
+# auto = tries Ollama first, falls back to Claude, then stub
+llm:
+  backend: "ollama"
+
+  # Ollama (local, free, open-source)
+  # Install: https://ollama.com
+  # Pull model: ollama pull llama3.2-vision
+  ollama:
+    host: "http://localhost:11434"
+    model: "llama3.2:latest"      # alternatives: qwen2.5:latest, gemma2:latest
+    timeout_s: 120
+
+  # Claude (cloud, requires ANTHROPIC_API_KEY env var)
+  claude:
+    model: "claude-sonnet-4-20250514"
+    max_tokens: 1024
+    timeout_s: 60
+
+# ─── Ingestion ───────────────────────────────────────────────────────────────
+ingestion:
+  source: "local"                 # local | s3 | rtsp
+  s3_bucket: "mvi-video-input"
+  local_dir: "data/samples"
+  supported_formats: ["mp4", "mov", "mkv", "webm", "avi"]
+
+# ─── Frame Sampling ──────────────────────────────────────────────────────────
+sampling:
+  strategy: "adaptive"            # Switch to adaptive to skip identical frames
+  fixed_fps: 1
+  ssim_threshold: 0.75            # Lower threshold skips more visually similar frames
+  max_fps: 2
+  min_fps: 0.2                    # Process fewer frames during static scenes
+
+# ─── CV Agent ────────────────────────────────────────────────────────────────
+cv_agent:
+  model: "yolov8m"                # Switch back to medium model for better object detection
+  weights: "weights/yolov8m.pt"   # fallback local cache; downloaded automatically if absent
+  conf_threshold: 0.30            # balanced: catches real objects without excessive false positives
+  iou_threshold: 0.45
+  device: "cuda"                  # cpu | cuda | mps
+  half_precision: true
+  orthorectification:
+    enabled: false
+    dem_path: "data/dem/srtm.tif"
+  tracker: "bytetrack"
+  # Florence-2 — scene captioning (<DETAILED_CAPTION>) + open-vocab detection (<DENSE_REGION_CAPTION>)
+  # Single model load handles both tasks. Detects flags, logos, slides, text, any object.
+  florence:
+    enabled: true
+    model: "microsoft/Florence-2-base"  # ~450 MB; use Florence-2-large for higher accuracy
+    max_detections: 40
+
+# ─── ASR Agent ───────────────────────────────────────────────────────────────
+# Uses faster-whisper (open-source, runs locally on CPU or GPU)
+asr_agent:
+  model: "base"                                                 # tiny | base | small | medium | large-v3
+  # Fine-tuned model (uncomment to use): "finetune/models/whisper-lora-ct2"
+  device: "cuda"
+  compute_type: "float16"         # int8 (CPU) | float16 (GPU)
+  language: null
+  timestamp_resolution_ms: 100
+  speaker_embedding:
+    model: "speechbrain/spkrec-ecapa-voxceleb"
+    dim: 192
+  qdrant:
+    host: "localhost"
+    port: 6333
+    collection: "speaker_profiles"
+  diarization:
+    backend: "gap"                # gap | pyannote | nemo_msdd
+    min_speakers: 1
+    max_speakers: 8
+
+# ─── VSR Agent ───────────────────────────────────────────────────────────────
+vsr_agent:
+  backbone: "av_hubert"
+  checkpoint: "weights/av_hubert_base_ls960.pt"
+  roi_size: 112
+  temporal_window: 25
+  device: "cuda"
+  lm_rescoring:
+    enabled: false
+    ngram_order: 5
+    arpa_path: "weights/librispeech_5gram.arpa"
+
+# ─── Orchestration ───────────────────────────────────────────────────────────
+orchestration:
+  backend: "harness_crewai"       # harness_crewai | crewai | local
+  max_retries: 1
+  crewai:
+    enabled: true
+    process: "sequential"
+    semantic_cache:
+      enabled: false
+      collection: "frame_cache"
+      similarity_threshold: 0.97
+
+# ─── Observability ───────────────────────────────────────────────────────────
+observability:
+  log_level: "INFO"

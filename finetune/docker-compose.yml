@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  finetune:
+    build: .
+    container_name: whisper_finetune
+    shm_size: "16gb"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./configs:/app/configs
+    command: python src/train.py --config configs/config.yaml
